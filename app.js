@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
-app.listen(process.env.PORT);
-
 const dotenv = require('dotenv');
-dotenv.config();
+
+dotenv.config({path: __dirname + "/.env"});
+app.listen(process.env.PORT);
 
 const UserRouter = require('./routes/users');
 const BookRouter = require('./routes/books');
