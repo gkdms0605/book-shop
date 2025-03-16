@@ -20,12 +20,12 @@ const join = (req, res) => {
     // 로그인 시 DB에서 salt 값을 꺼낸 후 클라이언트에게 받은 비밀번호를 암호화 (DB 비밀번호 비교)
 
     let values = [email, hashPassword, salt];
-    conn.query(sql, values, ((err, result) => {
+    conn.query(sql, values, ((err, results) => {
         if(err) {
             console.log(err);
             return res.status(StatusCodes.BAD_REQUEST).end();
         }
-        return res.status(StatusCodes.CREATED).json(result);
+        return res.status(StatusCodes.CREATED).json(results);
     }))
 };
 
@@ -33,13 +33,13 @@ const login = (req, res) => {
     let {email, password} = req.body;
     let sql = `SELECT * FROM users WHERE email = ?`;
 
-    conn.query(sql, email, (err, result) => {
+    conn.query(sql, email, (err, results) => {
         if(err){
             console.log(err);
             return res.status(StatusCodes.BAD_REQUEST).end();
         }
 
-        let loginUser = result[0]; 
+        let loginUser = results[0]; 
 
         // salt값 꺼낸 후 입력받은 비밀번호 암호화 -> DB 비밀번호와 비교
         const hashPassword = crypto.pbkdf2Sync(password, loginUser.salt, 10000, 10, 'sha512').toString('base64');
@@ -57,7 +57,7 @@ const login = (req, res) => {
                 httpOnly: true
             }
     
-            return res.status(StatusCodes.OK).json(result);
+            return res.status(StatusCodes.OK).json(results);
         } else {
             return res.status(StatusCodes.UNAUTHORIZED).end();
         }
@@ -69,13 +69,13 @@ const requestPasswordReset = (req, res) => {
 
     let sql = `SELECT * FROM users WHERE email = ?`;
 
-    conn.query(sql, email, (err, result) => {
+    conn.query(sql, email, (err, results) => {
         if(err){
             console.log(err);
             return res.status(StatusCodes.BAD_REQUEST).end();
         } 
 
-        const user = result[0];
+        const user = results[0];
         
         if(user){
             return res.status(StatusCodes.OK).json({
@@ -97,16 +97,16 @@ const passwordReset = (req, res) => {
 
     let values = [hashPassword, salt, email];
 
-    conn.query(sql, values, (err, result) => {
+    conn.query(sql, values, (err, results) => {
         if(err){
             console.log(err);
             return res.status(StatusCodes.BAD_REQUEST).end();
         }
 
-        if(result.affectedRows == 0){
+        if(results.affectedRows == 0){
             return res.status(StatusCodes.BAD_REQUEST).end();
         } else {
-            return res.status(StatusCodes.OK).json(result);
+            return res.status(StatusCodes.OK).json(results);
         }
     })
 };
