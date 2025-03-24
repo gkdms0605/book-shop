@@ -37,6 +37,7 @@ INSERT INTO books (title, img, category_id, form, isbn, summary, detail, author,
 VALUES ("혹부리 영감", 22, 2, "ebook", 10, "노래 주머니..", "혹 두개 되버림..", "김영감", 100, "목차입니다.", 20000, "2025-02-28");
 
 
+-- 좋아요 관리
 INSERT INTO likes (user_id, liked_book_id) VALUES (1, 1);
 INSERT INTO likes (user_id, liked_book_id) VALUES (1, 2);
 INSERT INTO likes (user_id, liked_book_id) VALUES (1, 3);
@@ -49,7 +50,6 @@ INSERT INTO likes (user_id, liked_book_id) VALUES (2, 5);
 
 DELETE FROM likes WHERE user_id = 1 AND liked_book_id = 3;
 
-
 SELECT COUNT(*) FROM Bookshop.likes WHERE liked_book_id = 1;
 
 SELECT *, (SELECT COUNT(*) FROM Bookshop.likes WHERE liked_book_id = books.id) AS likes FROM books;
@@ -59,3 +59,15 @@ SELECT *,
 (SELECT EXISTS (SELECT * FROM likes WHERE user_id = 1 AND liked_book_id = 1)) AS liked 
 FROM books LEFT JOIN category ON books.category_id = category.id
 WHERE books.id = 1;
+
+-- 장바구니 관리
+INSERT INTO cartItems (user_id, book_id, quantity) VALUES (1, 1, 1);
+INSERT INTO cartItems (user_id, book_id, quantity) VALUES (1, 1, 1);
+INSERT INTO cartItems (user_id, book_id, quantity) VALUES (1, 1, 1);
+INSERT INTO cartItems (user_id, book_id, quantity) VALUES (1, 1, 1);
+
+SELECT cartItems.id, book_id, title, quantity, user_id FROM cartItems LEFT JOIN books ON books.id = cartItems.book_id
+
+DELETE FROM cartItems WHERE id = ?;
+
+SELECT * FROM cartItems WHERE user_id = 1 AND id IN (1, 3);
