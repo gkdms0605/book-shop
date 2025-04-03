@@ -1,39 +1,52 @@
-const conn = require('../mariadb');
+// const conn = require('../mariadb');
+const mariadb = require('mysql2/promise');
 const {StatusCodes} = require('http-status-codes');
 
-const order = (req, res) => {
+const order = async (req, res) => {
+    const conn = await mariadb.createConnection({
+        host:'127.0.0.1',
+        user: 'root',
+        password: 'root',
+        database: 'Bookshop',
+        dateStrings: true
+    });
+
     const {items, delivery, totalQuantity, totalPrice, userId, firstBookTitle} = req.body;
-    let delivery_id = 3;
-    let order_id = 2;
+    let delivery_id;
+    let order_id;
 
-    // let sql = `INSERT INTO delivery (address, receiver, contact) VALUES (?, ?, ?)`;
-    // let values = [delivery.address, delivery.receiver, delivery.contact]
-    // conn.query(sql, values, (err, results) =>{
-    //     if(err){
-    //         console.log(err);
-    //         return res.status(StatusCodes.BAD_REQUEST).end();
-    //     }
-    //     // delivery_id = results.insertId;
-        
-    //     return res.status(StatusCodes.OK).json(results); 
-    // })
-
-    // let sql = `INSERT INTO orders (book_title, total_quantity, total_price, user_id, delivery_id) VALUES (?, ?, ?, ?, ?)`;
-    // let values = [firstBookTitle, totalQuantity, totalPrice, userId, delivery_id]
+    let sql = `INSERT INTO delivery (address, receiver, contact) VALUES (?, ?, ?)`;
+    let values = [delivery.address, delivery.receiver, delivery.contact]
     
-    // conn.query(sql, values, (err, results) =>{
+    let [results] = await conn.query(sql, values);
+
+    // , (err, results) =>{
     //     if(err){
     //         console.log(err);
     //         return res.status(StatusCodes.BAD_REQUEST).end();
     //     }
+        
+    //     delivery_id = results.insertId;
+    //     console.log("result.insertId " + results.insertId);
+    //     console.log("conn.query_ delivery_id " + delivery_id);
+    // }
 
-    //     order_id = results.insertId;
-    //     console.log(order_id);
+    console.log(results);
 
-    //     return res.status(StatusCodes.OK).json(results); 
-    // })
+    sql = `INSERT INTO orders (book_title, total_quantity, total_price, user_id, delivery_id) VALUES (?, ?, ?, ?, ?)`;
+    values = [firstBookTitle, totalQuantity, totalPrice, userId, delivery_id]
+    
+    conn.query(sql, values, (err, results) =>{
+        if(err){
+            console.log(err);
+            return res.status(StatusCodes.BAD_REQUEST).end();
+        }
 
-    let sql = `INSERT INTO orderedBook (order_id, book_id, quantity) VALUES ?`
+        order_id = results.insertId;
+        console.log(order_id);
+    })
+
+    sql = `INSERT INTO orderedBook (order_id, book_id, quantity) VALUES ?`
     values = [];
     
     items.forEach((item) => {
