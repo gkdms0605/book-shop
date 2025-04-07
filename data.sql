@@ -82,3 +82,13 @@ INSERT INTO orders (book_title, total_quantity, total_price, user_id, delivery_i
 -- 주문 상세 목록
 INSERT INTO orderedBook (order_id, book_id, quantity) VALUES (1, 1, 1);
 INSERT INTO orderedBook (order_id, book_id, quantity) VALUES (1, 3, 2);
+
+SELECT MAX(id) FROM orderedBook;
+SELECT last_insert_id();
+
+-- 결제된 도서 장바구니에서 삭제
+DELETE FROM cartItems WHERE id IN (1, 2, 3);
+
+-- 개별 주문 목록 조회
+SELECT orders.id, created_at, address, receiver, contact, book_title, total_price, total_quantity 
+FROM orders JOIN delivery ON orders.delivery_id = delivery.id;  
