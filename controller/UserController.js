@@ -46,10 +46,11 @@ const login = (req, res) => {
 
         if(loginUser && loginUser.password == hashPassword){
             const token = jwt.sign({
+                id: loginUser.id, 
                 email: loginUser.email,
                 password: loginUser.password
             }, process.env.PRIVATE_KEY, {
-                expiresIn: '5h',
+                expiresIn: '1m',
                 issuer: 'haeun'
             })
     
