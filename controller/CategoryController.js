@@ -13,14 +13,6 @@ const allCategory = (req, res) => {
         }
 
         return res.status(StatusCodes.OK).json(results);
-
-        // if(results.length) {
-        //     return res.status(StatusCodes.OK).json(results);
-        // }
-
-        // else {
-        //     return res.status(StatusCodes.NOT_FOUND).end();
-        // }
     })
 }
 

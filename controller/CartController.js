@@ -1,8 +1,7 @@
 const conn = require('../mariadb');
 const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
+const ensureAuthorization = require('../auth');
 const {StatusCodes} = require('http-status-codes');
-dotenv.config({path: __dirname + '/../.env'});
 
 const addToCart = (req, res) => {
     let {book_id, quantity} = req.body;
@@ -39,8 +38,13 @@ const getCartItems = (req, res) => {
         return res.status(StatusCodes.BAD_REQUEST).send("잘못된 토큰 값입니다. 다시 로그인 하세요.");
     } 
     else {
-        let sql = `SELECT cartItems.id, book_id, title, summary, quantity, price FROM cartItems LEFT JOIN books ON books.id = cartItems.book_id WHERE user_id = ? AND cartItems.id IN (?)`;
-        let values = [authorization.id, selected];
+        let sql = `SELECT cartItems.id, book_id, title, summary, quantity, price FROM cartItems LEFT JOIN books ON books.id = cartItems.book_id WHERE user_id = ?`;
+        let values = [authorization.id];
+
+        if (selected) {
+            sql += ` AND cartItems.id IN (?)`;
+            values.push(selected);
+        }
 
         conn.query(sql, values, (err, results) => {
             if(err){
@@ -48,26 +52,40 @@ const getCartItems = (req, res) => {
                 return res.status(StatusCodes.BAD_REQUEST).end();
             }
 
+            results.map(function(result) {
+                result.bookId = result.book_id;
+                delete result.book_id;
+            })
             return res.status(StatusCodes.OK).json(results);
         })
     }    
 }
 
 const removeCartItems = (req, res) => {
-    let cartItemid = req.params.id;
-    let sql = `DELETE FROM cartItems WHERE id = ?`;
-    
-    conn.query(sql, cartItemid, (err, results) => {
-        if(err){
-            console.log(err);
-            return res.status(StatusCodes.BAD_REQUEST).end();
-        }
+    let authorization = ensureAuthorization(req, res);
 
-        if(results.affectedRows == 0){
-            return res.status(StatusCodes.NOT_FOUND).end();
-        }
-        return res.status(StatusCodes.OK).json(results);
-    })
+    if (authorization instanceof jwt.TokenExpiredError){
+        return res.status(StatusCodes.UNAUTHORIZED).send("로그인 세션이 만료되었습니다. 다시 로그인 하세요.");
+    } 
+    else if (authorization instanceof jwt.JsonWebTokenError){
+        return res.status(StatusCodes.BAD_REQUEST).send("잘못된 토큰 값입니다. 다시 로그인 하세요.");
+    } 
+    else {
+        let cartItemid = req.params.id;
+        let sql = `DELETE FROM cartItems WHERE id = ?`;
+        
+        conn.query(sql, cartItemid, (err, results) => {
+            if(err){
+                console.log(err);
+                return res.status(StatusCodes.BAD_REQUEST).end();
+            }
+
+            if(results.affectedRows == 0){
+                return res.status(StatusCodes.NOT_FOUND).end();
+            }
+            return res.status(StatusCodes.OK).json(results);
+        })
+    }
 }
 
 const updateCartItems = (req, res) => {
@@ -96,24 +114,6 @@ const updateCartItems = (req, res) => {
 
             return res.status(StatusCodes.OK).json(results);
         })
-    }
-}
-
-function ensureAuthorization(req, res) {
-    try {
-        let deceivedjwt = req.headers['authorization'];
-        console.log(deceivedjwt);
-
-        let decodedjwt = jwt.verify(deceivedjwt, process.env.PRIVATE_KEY);
-        console.log(decodedjwt);
-
-        return decodedjwt;
-    }
-    catch (err) {
-        console.log(err.name);
-        console.log(err.message);
-
-        return err;
     }
 }
 
