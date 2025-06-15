@@ -1,4 +1,4 @@
-const conn = require('../mariadb');
+const { conn } = require('../mariadb');
 const ensureAuthorization = require('../auth');
 const jwt = require('jsonwebtoken');
 const {StatusCodes} = require('http-status-codes');
