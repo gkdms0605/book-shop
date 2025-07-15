@@ -6,9 +6,9 @@ const {StatusCodes} = require('http-status-codes');
 
 const addLike = (req, res) => {
     const book_id = req.params.id;
-    // const {user_id} = req.body;
 
     let authorization = ensureAuthorization(req, res);
+    console.log(authorization.id)
 
     if (authorization instanceof jwt.TokenExpiredError){
         return res.status(StatusCodes.UNAUTHORIZED).send("로그인 세션이 만료되었습니다. 다시 로그인 하세요.");
@@ -35,6 +35,7 @@ const removeLike = (req, res) => {
     const book_id = req.params.id;
 
     let authorization = ensureAuthorization(req, res);
+    console.log(authorization)
     
     if (authorization instanceof jwt.TokenExpiredError){
         return res.status(StatusCodes.UNAUTHORIZED).send("로그인 세션이 만료되었습니다. 다시 로그인 하세요.");

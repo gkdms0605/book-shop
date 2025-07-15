@@ -60,6 +60,7 @@ const allBooks = async (req, res) => {
 
 const bookDetail = (req, res) => {
     let authorization = ensureAuthorization(req, res);
+    let values = [];
 
     if (authorization instanceof jwt.TokenExpiredError){
         return res.status(StatusCodes.UNAUTHORIZED).send("로그인 세션이 만료되었습니다. 다시 로그인 하세요.");
@@ -69,20 +70,44 @@ const bookDetail = (req, res) => {
     } 
 
     let book_id = req.params.id;
-    let sql = `SELECT *, (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes, (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_book_id = ?)) AS liked 
-                FROM books LEFT JOIN category ON books.category_id = category.category_id WHERE books.id = ?;`;
 
-    if (authorization instanceof ReferenceError) {
-        sql = `SELECT *, (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes FROM books LEFT JOIN category ON books.category_id = category.category_id WHERE books.id = ?;`;
-        values = [book_id];
-    }
+    let sql = `
+  SELECT 
+    books.*, 
+    category.*, 
+    (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes,
+    EXISTS (
+      SELECT * FROM likes WHERE user_id = ? AND liked_book_id = ?
+    ) AS liked
+  FROM books
+  LEFT JOIN category ON books.category_id = category.category_id
+  WHERE books.id = ?;
+`;
+
+ values = [authorization.id, book_id, book_id];
+
+// 로그인 안 된 경우
+if (authorization instanceof ReferenceError) {
+  sql = `
+    SELECT 
+      books.*, 
+      category.*, 
+      (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes
+    FROM books
+    LEFT JOIN category ON books.category_id = category.category_id
+    WHERE books.id = ?;
+  `;
+  values = [book_id];
+}
+
 
     conn.query(sql, values, (err, results) => {
         if(err) {
+            console.error(err);
             return res.status(StatusCodes.BAD_REQUEST).end();
         }
 
-        if(results[0]){
+        if(results){
             results.map(function(result) {
                 result.categoryId = result.category_id;
                 result.pubDate = result.pub_date;
@@ -90,7 +115,7 @@ const bookDetail = (req, res) => {
                 delete result.category_id;
                 delete result.pub_date;
             });
-            return res.status(StatusCodes.OK).json(results);
+            return res.status(StatusCodes.OK).json(results[0]);
         }
         else {
             return res.status(StatusCodes.NOT_FOUND).end();
