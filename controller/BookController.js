@@ -3,76 +3,60 @@ const jwt = require('jsonwebtoken');
 const {StatusCodes} = require('http-status-codes');
 const {conn, dbQuery} = require('../mariadb');
 
-const allBooks = (req, res) => {
-    let allBooksRes = {};
-    let {category_id, news, limit = 3, currentPage = 0} = req.query;
-    let offset = currentPage == 0 ? 0 : limit * (currentPage - 1);
+const allBooks = async (req, res) => {
+    try {
+        let { category_id, news, limit = 3, currentPage = 0 } = req.query;
+        let offset = currentPage == 0 ? 0 : limit * (currentPage - 1);
 
-    let sql = `SELECT *, (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes FROM books`;
-    let values = [];
-
-    if(category_id && news){    
-        sql += ` WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()`;
-        values = [category_id];
-    }
-    else if(category_id){
-        sql += ` WHERE category_id = ?`;    
-        values = [category_id];
-    }
-    else if(news){
-        sql += ` WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()`;
-    }
-    sql += ` LIMIT ?, ?`;
-    console.log(offset, limit);
-    values.push(offset, parseInt(limit));
-    console.log(values);
-
-    conn.query(sql, values, (err, results) => {
-        if(err) {
-            console.log(err);
+        let values = [];
+        let condition = '';
+        if (category_id && news) {
+            condition = ` WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()`;
+            values = [category_id];
+        } else if (category_id) {
+            condition = ` WHERE category_id = ?`;
+            values = [category_id];
+        } else if (news) {
+            condition = ` WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()`;
         }
-        
-        console.log(results);
 
-        if(results.length) {
-            results.map(function(result) {
-                result.categoryId = result.category_id;
-                result.pubDate = result.pub_date;
+        const sql = `SELECT *, 
+                        (SELECT COUNT(*) FROM likes WHERE liked_book_id = books.id) AS likes 
+                    FROM books ${condition} 
+                    LIMIT ?, ?`;
 
-                delete result.category_id;
-                delete result.pub_date;
-            });
-            allBooksRes.books = results;
-        }
-        else {
+        values.push(offset, parseInt(limit));
+        const results = await dbQuery(sql, values);
+
+        if (!results.length) {
             return res.status(StatusCodes.NOT_FOUND).end();
         }
-    })
 
-    let [err, results] = dbQuery(sql, values);
+        results.forEach((result) => {
+            result.categoryId = result.category_id;
+            result.pubDate = result.pub_date;
+            delete result.category_id;
+            delete result.pub_date;
+        });
 
-    if (results) {
-        return res.status(StatusCodes.OK).json(results)
-    } else {
-        return res.status(StatusCodes.NOT_FOUND).end();
+        // 페이지네이션
+        const countSql = `SELECT COUNT(*) as totalCount FROM books`;
+        const countResult = await dbQuery(countSql, []);
+        const totalCount = countResult[0].totalCount;
+
+        return res.status(StatusCodes.OK).json({
+            books: results,
+            pagination: {
+                totalCount: totalCount,
+                currentPage: parseInt(currentPage),
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).end();
     }
-
-    sql = `SELECT count(*) FROM books`;
-    conn.query(sql, values, (err, results) => {
-        if(err) {
-            console.log(err);
-            return res.status(StatusCodes.BAD_REQUEST).end();
-        }
-
-        let pagenation = {};
-        pagenation.currentPage = parseInt(currentPage);
-        pagenation.totalCount = results[0]["count(*)"];
-
-        allBooksRes.pagenation = pagenation;
-
-        return res.status(StatusCodes.OK).json(allBooksRes);
-    })
-}
+};
 
 const bookDetail = (req, res) => {
     let authorization = ensureAuthorization(req, res);
