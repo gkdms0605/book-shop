@@ -1,27 +1,20 @@
-const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
-const cookieParser = require('cookie-parser')
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
 dotenv.config();
 
 const ensureAuthorization = (req, res) => {
-    try {
-        let token = req.cookies.token;
+  try {
+    const token = req.cookies.token;
 
-        if(token) {
-            let decodedjwt = jwt.verify(token, process.env.PRIVATE_KEY);
-            return decodedjwt;
-        }
+    // 로그인 안 된 경우: null 반환
+    if (!token) return null;
 
-        else {
-            throw new ReferenceError('jwt must be provided');
-        }
-    }
-    catch (err) {
-        console.log(err.name);
-        console.log(err.message);
-
-        return err;
-    }
-}
+    const decoded = jwt.verify(token, process.env.PRIVATE_KEY);
+    return decoded;
+  } catch (err) {
+    // 로그인 했지만 만료된 경우: err 그대로 반환
+    return err;
+  }
+};
 
 module.exports = ensureAuthorization;
